@@ -8,6 +8,12 @@ trigger:
 
 pool: Default
 
+variables:
+- name: release_destination
+  value: Release_AWS.ip-10-0-3-7
+- name: script_dir
+  value: /home/ubuntu/deploy/
+
 stages:
 - stage: Build
   jobs:
@@ -33,7 +39,7 @@ stages:
 - stage: Release
   jobs:
   - deployment: Release
-    environment: 'Release.AzureDevOps-Deploy01'  # リリース環境名を指定
+    environment: '$(release_destination)'  # リリース環境名を指定
     strategy:
       runOnce:
         deploy:
@@ -43,5 +49,5 @@ stages:
             displayName: 'Download Executable Artifact'
 
           - script: |
-              mkdir -p /home/azureuser/deploy/
-              cp -r $(Pipeline.Workspace)/CProgram/* /home/azureuser/deploy/
+              mkdir -p '$(script_dir)'
+              cp -r $(Pipeline.Workspace)/CProgram/* '$(script_dir)'
