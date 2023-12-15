@@ -1,0 +1,57 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y gcc
+        gcc hello.c -o hello
+      displayName: 'Build C Program'
+
+- stage: Deploy
+  jobs:
+  - job: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: CopyFiles@2
+      displayName: 'Copy Executable to Deployment Directory'
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: 'hello'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/bin'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Executable as Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/bin'
+        ArtifactName: 'CProgram'
+        publishLocation: 'Container'
+
+- stage: Release
+  jobs:
+  - deployment: Release
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'YourEnvironmentName'  # リリース環境名を指定
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: 'CProgram'
+            displayName: 'Download Executable Artifact'
+
+          - script: |
+              # ここに実際のデプロイ手順を追加する
+              # 例: ファイルを指定のディレクトリにコピーするなど
+              mkdir -p /your/deployment/directory
+              cp -r $(Pipeline.Workspace)/CProgram/* /your/deployment/directory/
+            displayName: 'Deploy C Program'

@@ -1,0 +1,47 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool: Default
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - script: |
+        gcc helloc.c -o hello
+      displayName: 'Build C Program'
+    - task: CopyFiles@2
+      displayName: 'Copy Executable to Deployment Directory'
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: 'hello'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/bin'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Executable as Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/bin'
+        ArtifactName: 'CProgram'
+        publishLocation: 'Container'
+
+- stage: Release
+  jobs:
+  - deployment: Release
+    environment: 'Release.AzureDevOps-Deploy01'  # リリース環境名を指定
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: 'CProgram'
+            displayName: 'Download Executable Artifact'
+
+          - script: |
+              mkdir -p /home/azureuser/deploy/
+              cp -r $(Pipeline.Workspace)/CProgram/* /home/azureuser/deploy/
