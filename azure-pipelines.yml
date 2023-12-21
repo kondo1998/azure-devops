@@ -10,9 +10,9 @@ pool: Default
 
 variables:
 - name: release_destination
-  value: Release_AWS.ip-10-0-3-7
+  value: Self_host_agent_test.AzureDevOps-HostAgent01
 - name: script_dir
-  value: /home/ubuntu/deploy/
+  value: /home/azureuser/deploy/
 
 stages:
 - stage: Build
@@ -21,33 +21,12 @@ stages:
     steps:
     - script: |
         gcc helloc.c -o hello
+        mkdir -p '$(script_dir)'
+        cp -p hello '$(script_dir)'
       displayName: 'Build C Program'
-    - task: CopyFiles@2
-      displayName: 'Copy Executable to Deployment Directory'
+    - task: CopyFilesOverSSH@0
       inputs:
-        SourceFolder: '$(Build.SourcesDirectory)'
-        Contents: 'hello'
-        TargetFolder: '$(Build.ArtifactStagingDirectory)/bin'
-
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Executable as Artifact'
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/bin'
-        ArtifactName: 'CProgram'
-        publishLocation: 'Container'
-
-- stage: Release
-  jobs:
-  - deployment: Release
-    environment: '$(release_destination)'  # リリース環境名を指定
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: 'CProgram'
-            displayName: 'Download Executable Artifact'
-
-          - script: |
-              mkdir -p '$(script_dir)'
-              cp -r $(Pipeline.Workspace)/CProgram/* '$(script_dir)'
+        sshEndpoint: 'Deploy-Distination'
+        sourceFolder: '$(script_dir)'
+        contents: '**'
+        targetFolder: '/home/azureuser/deploy/'
